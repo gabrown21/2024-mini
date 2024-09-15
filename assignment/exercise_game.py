@@ -1,14 +1,18 @@
 """
 Response time - single-threaded
 """
-
+"""
+Pi Pico Connected to dawgs on three network connection with script: https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
+"""
 from machine import Pin
+import urequests
 import time
 import random
 import json
 
+FIREBASE = "https://mini-gabe-and-lucas-default-rtdb.firebaseio.com/response-time-recording.json"
 
-N: int = 3
+N: int = 10
 sample_ms = 10.0
 on_ms = 500
 
@@ -30,7 +34,6 @@ def blinker(N: int, led: Pin) -> None:
 
 def write_json(json_filename: str, data: dict) -> None:
     """Writes data to a JSON file.
-
     Parameters
     ----------
 
@@ -40,7 +43,16 @@ def write_json(json_filename: str, data: dict) -> None:
     data: dict
         Dictionary data to write to the file.
     """
-
+    try:
+        response = urequests.post(FIREBASE, json=data)
+        if response.status_code == 200:
+            print("Successfull")
+        else:
+            print(f"Failed to send data: {response.status_code}")
+        response.close()
+    except Exception as e:
+        print(f"Thrown error: {e}")
+        
     with open(json_filename, "w") as f:
         json.dump(data, f)
 
@@ -53,11 +65,31 @@ def scorer(t: list[int | None]) -> None:
     t_good = [x for x in t if x is not None]
 
     print(t_good)
+    
+    if t_good:
+        minr = min(t_good)
+        maxr = max(t_good)
+        avgr = sum(t_good)/len(t_good)
+    else:
+        minr = None
+        maxr = None
+        avgr = None
+        
+    if len(t) > 0:
+        score = len(t_good) / len(t)
+    else:
+        score = 0
 
     # add key, value to this dict to store the minimum, maximum, average response time
     # and score (non-misses / total flashes) i.e. the score a floating point number
     # is in range [0..1]
-    data = {}
+    data = {
+        "max_response": maxr,
+        "min_response": minr,
+        "average_response": avgr,
+        "score": score,
+        "misses": misses
+    }
 
     # %% make dynamic filename and write JSON
 
