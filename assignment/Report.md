@@ -4,3 +4,4 @@ Max_Bright: 1,300
 
 Excercise 2: Wii Mii Theme Song 
 
+Excercise 3: 
